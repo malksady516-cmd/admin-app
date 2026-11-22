@@ -1,0 +1,444 @@
+ <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المطور - محمد الكسادي</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --admin-red: #ff2a2a;
+            --gold: #ffd700;
+            --text-light: #f1f1f1;
+            --text-muted: #aaaaaa;
+            --cyan: #00e5ff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+
+        body { 
+            background-color: var(--bg-dark); 
+            background-image: radial-gradient(circle at 50% 0%, #2a0000 0%, #0a0a0a 70%);
+            color: var(--text-light); 
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* شاشة البداية */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; transition: opacity 1s ease-out, visibility 1s ease-out;
+        }
+        .splash-hidden { opacity: 0; visibility: hidden; }
+        .glow-icon { font-size: 90px; color: var(--admin-red); margin-bottom: 20px; text-shadow: 0 0 30px var(--admin-red); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; text-shadow: 0 0 50px var(--admin-red); } 100% { transform: scale(1); opacity: 0.8; } }
+        .splash-title { font-family: 'Cairo', sans-serif; font-size: 28px; font-weight: 900; color: var(--text-light); letter-spacing: 2px; margin-bottom: 10px; }
+        .splash-dev { font-size: 22px; color: var(--gold); font-weight: 700; margin-bottom: 40px; border-bottom: 2px solid var(--gold); display: inline-block; padding-bottom: 5px; }
+        .enter-btn { background: transparent; color: var(--admin-red); border: 2px solid var(--admin-red); padding: 15px 50px; border-radius: 5px; font-size: 20px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 0 15px rgba(255, 42, 42, 0.4); transition: 0.3s; }
+        .enter-btn:hover { background: var(--admin-red); color: white; box-shadow: 0 0 30px var(--admin-red); }
+
+        /* التطبيق */
+        #app-container { display: none; padding-bottom: 90px; }
+        .screen { display: none; padding: 20px; animation: fadeIn 0.4s ease; max-width: 600px; margin: auto; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* الهيدر */
+        .top-header { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); padding: 15px 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .top-header h1 { font-size: 18px; font-family: 'Cairo', sans-serif; color: var(--gold); }
+        .top-header i { color: var(--cyan); font-size: 24px; }
+
+        /* بطاقة عدد المنضمين */
+        .users-card { background: linear-gradient(135deg, #1a1a1a, #2a2a2a); border: 1px solid var(--cyan); border-radius: 15px; padding: 15px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }
+        .users-card-info { display: flex; align-items: center; gap: 15px; }
+        .users-card-info i { font-size: 30px; color: var(--cyan); }
+        .users-text h4 { font-size: 16px; color: #ccc; margin-bottom: 2px; }
+        .users-number { font-size: 24px; font-weight: 900; color: white; font-family: 'Cairo'; }
+        .btn-view-users { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; font-family: inherit; }
+        .btn-view-users:hover { background: var(--cyan); color: #000; }
+
+        /* الزر الأحمر */
+        .monitor-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: linear-gradient(45deg, #ff0000, #cc0000); color: white; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; font-size: 18px; margin-bottom: 25px; box-shadow: 0 0 20px rgba(255, 42, 42, 0.6); cursor: pointer; transition: 0.3s; border: 1px solid #ff8a80; }
+        .monitor-btn:active { transform: scale(0.98); }
+
+        /* الأقسام الرئيسية */
+        .sections-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .section-box { background: #222; border-radius: 15px; overflow: hidden; text-align: center; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2); position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); height: 180px; }
+        .section-box:hover { transform: translateY(-5px); border-color: var(--gold); }
+        .section-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1; opacity: 0.8; transition: 0.3s; }
+        .section-box:hover img { opacity: 1; }
+        .section-box h3 { position: absolute; bottom: 0; left: 0; width: 100%; padding: 12px; font-family: 'Cairo', sans-serif; font-size: 18px; color: white; z-index: 2; text-shadow: 0 2px 4px black; background: rgba(0,0,0,0.7); }
+        .science-box h3 { border-bottom: 3px solid #1976d2; }
+        .arts-box h3 { border-bottom: 3px solid var(--gold); }
+
+        /* اختبر نفسك */
+        .test-box { background: linear-gradient(135deg, #4a148c, #7b1fa2); color: white; border-radius: 20px; padding: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border: 1px solid rgba(255, 42, 42, 0.3); cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .test-box h3 { font-family: 'Cairo', sans-serif; font-size: 20px; color: var(--text-light); }
+        .test-box i { font-size: 40px; color: #ffd54f; }
+
+        /* العناوين والأزرار الداخلية */
+        .page-title { font-family: 'Cairo', sans-serif; font-size: 20px; color: var(--text-light); margin-bottom: 20px; border-right: 5px solid var(--cyan); padding-right: 15px; }
+        .add-btn { background: #00c853; color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: bold; margin-bottom: 25px; display: inline-flex; align-items: center; gap: 10px; font-size: 16px; width: 100%; justify-content: center;}
+        
+        /* شبكة الكتب (المربعات) */
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .book-card {
+            background: #1e1e1e;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            transition: 0.3s;
+        }
+        .book-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
+
+        /* صورة الكتاب */
+        .book-card .book-img {
+            width: 100%;
+            height: 160px; 
+            object-fit: cover;
+            border-bottom: 2px solid #333;
+        }
+
+        /* اسم المادة */
+        .book-title {
+            padding: 12px 10px;
+            text-align: center;
+            font-weight: bold;
+            font-family: 'Cairo', sans-serif;
+            color: var(--gold);
+            font-size: 15px;
+            background: #111;
+        }
+
+        /* أزرار التحكم */
+        .book-actions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+            background: rgba(0,0,0,0.6);
+            padding: 5px;
+            border-radius: 10px;
+        }
+        .book-actions button {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            transition: 0.3s;
+        }
+        .book-actions .btn-edit:hover { color: #64b5f6; }
+        .book-actions .btn-delete:hover { color: #e57373; }
+
+        /* شريط التنقل */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #111; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-around; padding: 15px 0; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: 0.3s; }
+        .nav-item i { font-size: 22px; margin-bottom: 5px; }
+        .nav-item.active { color: var(--cyan); font-weight: bold; }
+
+        /* النوافذ */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #1a1a1a; border: 1px solid rgba(255, 42, 42, 0.3); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; }
+        .modal-box h3 { margin-bottom: 20px; color: var(--gold); text-align: center; font-family: 'Cairo', sans-serif;}
+        .modal-box input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #333; background: #0a0a0a; color: white; border-radius: 10px; font-family: inherit; font-size: 15px; }
+        .modal-box input:focus { border-color: var(--admin-red); outline: none; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions button { flex: 1; padding: 15px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; color: white; font-size: 16px; }
+        .btn-save { background: #00c853; }
+        .btn-cancel { background: #424242; }
+
+        /* الإعدادات */
+        .settings-section { background: #1a1a1a; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .settings-section h3 { margin-bottom: 15px; font-size: 16px; color: var(--gold); font-family: 'Cairo', sans-serif; }
+        input[type="color"] { width: 100%; height: 50px; border: none; cursor: pointer; border-radius: 10px; background: transparent; }
+        .notif-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #333; background: #0a0a0a; color: white; margin-bottom: 15px; font-family: inherit; }
+    </style>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff2a2a">
+</head>
+<body>
+
+    <!-- شاشة البداية -->
+    <div id="splash-screen">
+        <i class="fas fa-shield-alt glow-icon"></i>
+        <h1 class="splash-title">أهلاً وسهلاً بك</h1>
+        <div class="splash-dev">المطور: محمد الكسادي</div>
+        <h2 style="font-family: 'Cairo'; font-size: 20px; margin-bottom: 40px; color: #888;">مركز التحكم بالاختبارات 2026</h2>
+        <button class="enter-btn" onclick="enterApp()">بدء التشغيل</button>
+    </div>
+
+    <!-- التطبيق -->
+    <div id="app-container">
+
+        <!-- الشاشة الرئيسية -->
+        <div id="home-screen" class="screen active">
+            <div class="top-header">
+                <h1>لوحة المدير</h1>
+                <i class="fas fa-user-shield"></i>
+            </div>
+
+            <div class="users-card">
+                <div class="users-card-info">
+                    <i class="fas fa-users"></i>
+                    <div class="users-text">
+                        <h4>الأشخاص المنضمين</h4>
+                        <div class="users-number">1,250</div>
+                    </div>
+                </div>
+                <button class="btn-view-users" onclick="alert('سيتم عرض قائمة الطلاب هنا')">عرض</button>
+            </div>
+
+            <a class="monitor-btn" onclick="alert('سيتم فتح واجهة الطالب هنا')">
+                <i class="fas fa-eye"></i> المراقبة (معاينة كطالب)
+            </a>
+
+            <h3 class="page-title">الأقسام الدراسية</h3>
+            
+            <div class="sections-grid">
+                <div class="section-box science-box" onclick="openAdminSection('science')">
+                    <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=500&auto=format&fit=crop" alt="القسم العلمي">
+                    <h3>القسم العلمي</h3>
+                </div>
+                <div class="section-box arts-box" onclick="openAdminSection('arts')">
+                    <img src="https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=500&auto=format&fit=crop" alt="القسم الأدبي">
+                    <h3>القسم الأدبي</h3>
+                </div>
+            </div>
+
+            <div class="test-box" onclick="alert('قسم تلقائي، سيسحب الأسئلة من المواد المضافة')">
+                <div>
+                    <h3>اختبر نفسك</h3>
+                    <p style="font-size: 13px; color: #ccc;">سحب تلقائي للاختبارات</p>
+                </div>
+                <i class="fas fa-brain"></i>
+            </div>
+        </div>
+
+        <!-- شاشة إدارة المواد -->
+        <div id="manage-screen" class="screen">
+            <button onclick="showScreen('home-screen')" style="background:transparent; border:1px solid #555; color:#ccc; padding:8px 15px; border-radius:8px; margin-bottom:20px; cursor:pointer;"><i class="fas fa-arrow-right"></i> رجوع</button>
+            <h2 id="manage-title" class="page-title">إدارة المواد</h2>
+            
+            <button class="add-btn" onclick="openAddModal()"><i class="fas fa-plus"></i> إضافة مادة جديدة</button>
+            
+            <!-- شبكة المربعات -->
+            <div id="items-list" class="books-grid">
+                <!-- سيتم توليد المواد هنا -->
+            </div>
+        </div>
+
+        <!-- شاشة الإعدادات -->
+        <div id="settings-screen" class="screen">
+            <div class="top-header">
+                <h1>الإعدادات</h1>
+                <i class="fas fa-sliders-h"></i>
+            </div>
+            
+            <div class="settings-section">
+                <h3><i class="fas fa-palette"></i> لون الواجهة الأساسي</h3>
+                <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">سيتم تطبيق هذا اللون على التطبيق بالكامل</p>
+                <input type="color" id="main-color-picker" onchange="changeTheme(this.value)">
+            </div>
+
+            <div class="settings-section">
+                <h3><i class="fas fa-bell"></i> إرسال إشعار للطلاب</h3>
+                <input type="text" id="notif-text" class="notif-input" placeholder="اكتب نص الإشعار هنا...">
+                <button onclick="sendNotification()" style="background:var(--admin-red); color:white; border:none; padding:12px; border-radius:10px; width:100%; font-weight:bold; font-size:15px; cursor:pointer;">إرسال الآن</button>
+            </div>
+        </div>
+
+        <!-- شريط التنقل السفلي -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="changeTab('home-screen', this)">
+                <i class="fas fa-home"></i><span>الرئيسية</span>
+            </div>
+            <div class="nav-item" onclick="changeTab('settings-screen', this)">
+                <i class="fas fa-cog"></i><span>الإعدادات</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة / تعديل -->
+    <div class="modal-overlay" id="item-modal">
+        <div class="modal-box">
+            <h3 id="modal-title">إضافة مادة</h3>
+            <input type="text" id="input-name" placeholder="اسم المادة (مثال: الأحياء)">
+            <input type="text" id="input-img" placeholder="رابط صورة الغلاف (URL)">
+            <input type="text" id="input-pdf" placeholder="رابط ملف PDF">
+            <div class="modal-actions">
+                <button class="btn-save" onclick="saveItem()">حفظ</button>
+                <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. شاشة البداية ---
+        function enterApp() {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+            audio.volume = 0.5; audio.play().catch(e => console.log("الصوت محظور"));
+            document.getElementById('splash-screen').classList.add('splash-hidden');
+            document.getElementById('app-container').style.display = 'block';
+            setTimeout(() => { document.getElementById('splash-screen').style.display = 'none'; }, 1000);
+        }
+
+        // --- 2. التنقل ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+        function changeTab(screenId, navItem) {
+            showScreen(screenId);
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            navItem.classList.add('active');
+        }
+
+        // --- 3. إدارة البيانات (تم وضع رابط صورة الأحياء الخاصة بك) ---
+        let currentSection = 'science';
+        let allData = JSON.parse(localStorage.getItem('adminData')) || {
+            science: [
+                // رابط الصورة المباشر الذي أرسلته
+                { id: 1, name: "الأحياء", img: "https://i.ibb.co/68032Z1/biology.jpg", pdf: "#" },
+                { id: 2, name: "الكيمياء", img: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=500&auto=format&fit=crop", pdf: "#" }
+            ], 
+            arts: [
+                { id: 3, name: "التاريخ", img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?q=80&w=500&auto=format&fit=crop", pdf: "#" }
+            ]
+        };
+        let editItemId = null;
+
+        const defaultImg = "https://cdn-icons-png.flaticon.com/512/2232/2232688.png";
+
+        function openAdminSection(section) {
+            currentSection = section;
+            document.getElementById('manage-title').innerText = section === 'science' ? 'إدارة القسم العلمي' : 'إدارة القسم الأدبي';
+            renderItems();
+            showScreen('manage-screen');
+        }
+
+        // --- توليد المربعات ---
+        function renderItems() {
+            const list = document.getElementById('items-list');
+            list.innerHTML = '';
+            const items = allData[currentSection] || [];
+            
+            if(items.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px; grid-column: span 2;">لا توجد مواد مضافة.</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                let imgSrc = item.img && item.img.trim() !== "" ? item.img : defaultImg;
+
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.innerHTML = `
+                    <div class="book-actions">
+                        <button class="btn-edit" onclick="editItem(${item.id})" title="تعديل"><i class="fas fa-edit"></i></button>
+                        <button class="btn-delete" onclick="deleteItem(${item.id})" title="حذف"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <img src="${imgSrc}" class="book-img" alt="${item.name}" onerror="this.src='${defaultImg}'">
+                    <div class="book-title">${item.name}</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function deleteItem(id) {
+            if(confirm('هل أنت متأكد من حذف هذه المادة نهائياً؟')) {
+                allData[currentSection] = allData[currentSection].filter(item => item.id !== id);
+                saveData(); renderItems();
+            }
+        }
+
+        // --- 4. النوافذ والإضافة ---
+        function openAddModal() {
+            editItemId = null;
+            document.getElementById('modal-title').innerText = 'إضافة مادة جديدة';
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-img').value = '';
+            document.getElementById('input-pdf').value = '';
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function editItem(id) {
+            const item = allData[currentSection].find(i => i.id === id);
+            if(!item) return;
+            editItemId = id;
+            document.getElementById('modal-title').innerText = 'تعديل المادة';
+            document.getElementById('input-name').value = item.name;
+            document.getElementById('input-img').value = item.img;
+            document.getElementById('input-pdf').value = item.pdf;
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('item-modal').classList.remove('active'); }
+
+        function saveItem() {
+            const name = document.getElementById('input-name').value;
+            const img = document.getElementById('input-img').value;
+            const pdf = document.getElementById('input-pdf').value;
+
+            if(!name) { alert('يرجى إدخال اسم المادة على الأقل!'); return; }
+
+            if(editItemId) {
+                const index = allData[currentSection].findIndex(i => i.id === editItemId);
+                allData[currentSection][index] = { id: editItemId, name, img, pdf };
+            } else {
+                allData[currentSection].push({ id: Date.now(), name, img, pdf });
+            }
+            saveData(); closeModal(); renderItems();
+        }
+
+        function saveData() { localStorage.setItem('adminData', JSON.stringify(allData)); }
+
+        // --- 5. الإعدادات ---
+        function changeTheme(color) {
+            document.documentElement.style.setProperty('--admin-red', color);
+            localStorage.setItem('themeColor', color);
+        }
+        const savedColor = localStorage.getItem('themeColor');
+        if(savedColor) {
+            document.documentElement.style.setProperty('--admin-red', savedColor);
+            if(document.getElementById('main-color-picker')) document.getElementById('main-color-picker').value = savedColor;
+        }
+
+        function sendNotification() {
+            const text = document.getElementById('notif-text').value;
+            if(text) { alert(`تم إرسال الإشعار: \n"${text}"`); document.getElementById('notif-text').value = ''; } 
+            else { alert('اكتب نص الإشعار أولاً'); }
+        }
+
+        // لمسح البيانات القديمة (لتجربة الكود الجديد من الصفر)
+        // localStorage.removeItem('adminData'); 
+        
+        renderItems();
+    </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+</body>
