@@ -174,7 +174,7 @@
         .notif-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #333; background: #0a0a0a; color: white; margin-bottom: 15px; font-family: inherit; }
     </style>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff2a2a">
+    <meta name="theme-color" content="#ff2a2a">
 </head>
 <body>
 
@@ -292,6 +292,35 @@
         </div>
     </div>
 
+    <!-- استيراد مكتبات Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB1m4F4YvDRwCLjrBHAoZH8rdyH678Cwp0",
+            authDomain: "sadi-platform.firebaseapp.com",
+            databaseURL: "https://sadi-platform-default-rtdb.firebaseio.com",
+            projectId: "sadi-platform",
+            storageBucket: "sadi-platform.firebasestorage.app",
+            messagingSenderId: "97301590450",
+            appId: "1:97301590450:web:29e876db688cbcb3274ab",
+            measurementId: "G-C6GHJBV99P"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        // جعل الدوال متاحة للاستخدام في الكود الأساسي
+        window.firebaseDB = db;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseSet = set;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseUpdate = update;
+    </script>
+
     <script>
         // --- 1. شاشة البداية ---
         function enterApp() {
@@ -313,61 +342,61 @@
             navItem.classList.add('active');
         }
 
-        // --- 3. إدارة البيانات (تم وضع رابط صورة الأحياء الخاصة بك) ---
+        // --- 3. إدارة البيانات (مربوطة بـ Firebase الآن) ---
         let currentSection = 'science';
-        let allData = JSON.parse(localStorage.getItem('adminData')) || {
-            science: [
-                // رابط الصورة المباشر الذي أرسلته
-                { id: 1, name: "الأحياء", img: "https://i.ibb.co/68032Z1/biology.jpg", pdf: "#" },
-                { id: 2, name: "الكيمياء", img: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=500&auto=format&fit=crop", pdf: "#" }
-            ], 
-            arts: [
-                { id: 3, name: "التاريخ", img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?q=80&w=500&auto=format&fit=crop", pdf: "#" }
-            ]
-        };
         let editItemId = null;
+        let currentItemsData = {}; // لتخزين البيانات الحالية من السحابة
 
         const defaultImg = "https://cdn-icons-png.flaticon.com/512/2232/2232688.png";
 
         function openAdminSection(section) {
             currentSection = section;
             document.getElementById('manage-title').innerText = section === 'science' ? 'إدارة القسم العلمي' : 'إدارة القسم الأدبي';
-            renderItems();
+            renderItems(); // هذه الدالة الآن ستقرأ من السحابة
             showScreen('manage-screen');
         }
 
-        // --- توليد المربعات ---
+        // --- توليد المربعات من السحابة ---
         function renderItems() {
             const list = document.getElementById('items-list');
-            list.innerHTML = '';
-            const items = allData[currentSection] || [];
+            list.innerHTML = '<p style="text-align:center; color:#666; grid-column: span 2;">جاري تحميل البيانات...</p>';
             
-            if(items.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px; grid-column: span 2;">لا توجد مواد مضافة.</p>';
-                return;
-            }
+            const itemsRef = window.firebaseRef(window.firebaseDB, 'materials/' + currentSection);
+            window.firebaseOnValue(itemsRef, (snapshot) => {
+                list.innerHTML = ''; // تفريغ القائمة
+                const data = snapshot.val();
+                currentItemsData = data || {};
 
-            items.forEach(item => {
-                let imgSrc = item.img && item.img.trim() !== "" ? item.img : defaultImg;
+                if(!data) {
+                    list.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px; grid-column: span 2;">لا توجد مواد مضافة.</p>';
+                    return;
+                }
 
-                const card = document.createElement('div');
-                card.className = 'book-card';
-                card.innerHTML = `
-                    <div class="book-actions">
-                        <button class="btn-edit" onclick="editItem(${item.id})" title="تعديل"><i class="fas fa-edit"></i></button>
-                        <button class="btn-delete" onclick="deleteItem(${item.id})" title="حذف"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <img src="${imgSrc}" class="book-img" alt="${item.name}" onerror="this.src='${defaultImg}'">
-                    <div class="book-title">${item.name}</div>
-                `;
-                list.appendChild(card);
+                Object.keys(data).forEach(key => {
+                    const item = data[key];
+                    let imgSrc = item.img && item.img.trim() !== "" ? item.img : defaultImg;
+
+                    const card = document.createElement('div');
+                    card.className = 'book-card';
+                    card.innerHTML = `
+                        <div class="book-actions">
+                            <button class="btn-edit" onclick="editItem('${key}')" title="تعديل"><i class="fas fa-edit"></i></button>
+                            <button class="btn-delete" onclick="deleteItem('${key}')" title="حذف"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <img src="${imgSrc}" class="book-img" alt="${item.name}" onerror="this.src='${defaultImg}'">
+                        <div class="book-title">${item.name}</div>
+                    `;
+                    list.appendChild(card);
+                });
             });
         }
 
         function deleteItem(id) {
-            if(confirm('هل أنت متأكد من حذف هذه المادة نهائياً؟')) {
-                allData[currentSection] = allData[currentSection].filter(item => item.id !== id);
-                saveData(); renderItems();
+            if(confirm('هل أنت متأكد من حذف هذه المادة نهائياً من السحابة؟')) {
+                const itemRef = window.firebaseRef(window.firebaseDB, 'materials/' + currentSection + '/' + id);
+                window.firebaseRemove(itemRef).then(() => {
+                    // سيتم تحديث القائمة تلقائياً بفضل onValue
+                }).catch(err => alert('خطأ في الحذف: ' + err.message));
             }
         }
 
@@ -382,13 +411,13 @@
         }
 
         function editItem(id) {
-            const item = allData[currentSection].find(i => i.id === id);
+            const item = currentItemsData[id];
             if(!item) return;
             editItemId = id;
             document.getElementById('modal-title').innerText = 'تعديل المادة';
             document.getElementById('input-name').value = item.name;
-            document.getElementById('input-img').value = item.img;
-            document.getElementById('input-pdf').value = item.pdf;
+            document.getElementById('input-img').value = item.img || '';
+            document.getElementById('input-pdf').value = item.pdf || '';
             document.getElementById('item-modal').classList.add('active');
         }
 
@@ -402,15 +431,20 @@
             if(!name) { alert('يرجى إدخال اسم المادة على الأقل!'); return; }
 
             if(editItemId) {
-                const index = allData[currentSection].findIndex(i => i.id === editItemId);
-                allData[currentSection][index] = { id: editItemId, name, img, pdf };
+                // تعديل مادة موجودة
+                const itemRef = window.firebaseRef(window.firebaseDB, 'materials/' + currentSection + '/' + editItemId);
+                window.firebaseUpdate(itemRef, { name, img, pdf }).then(() => {
+                    closeModal();
+                }).catch(err => alert('خطأ في التعديل: ' + err.message));
             } else {
-                allData[currentSection].push({ id: Date.now(), name, img, pdf });
+                // إضافة مادة جديدة
+                const itemsRef = window.firebaseRef(window.firebaseDB, 'materials/' + currentSection);
+                const newItemRef = window.firebasePush(itemsRef);
+                window.firebaseSet(newItemRef, { name, img, pdf }).then(() => {
+                    closeModal();
+                }).catch(err => alert('خطأ في الإضافة: ' + err.message));
             }
-            saveData(); closeModal(); renderItems();
         }
-
-        function saveData() { localStorage.setItem('adminData', JSON.stringify(allData)); }
 
         // --- 5. الإعدادات ---
         function changeTheme(color) {
@@ -428,17 +462,14 @@
             if(text) { alert(`تم إرسال الإشعار: \n"${text}"`); document.getElementById('notif-text').value = ''; } 
             else { alert('اكتب نص الإشعار أولاً'); }
         }
-
-        // لمسح البيانات القديمة (لتجربة الكود الجديد من الصفر)
-        // localStorage.removeItem('adminData'); 
-        
-        renderItems();
     </script>
+
     <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js');
-    });
-  }
-</script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    </script>
 </body>
+                 </html>
